@@ -33,11 +33,15 @@ async function handleRequest(request) {
     let responseBody = await originalResponse.text();
 
     const replaceAttributes = (html) => html
-      .replace(/[(](https?:\/\/[^"]*?[^"]*)[)]/g, (_, p1) => `(${baseUrl}${p1})`)
-      .replace(/"(https?:\/\/[^"]*?[^"]*)"/g, (_, p1) => `"${baseUrl}${p1}"`)
-      .replace(/(src|href|content|action|data-[^=]+)="(\/\/[^"]+)"/g, (_, p1, p2) => `${p1}="${originalRequestUrl.protocol}${p2}"`)
-      .replace(/(src|href|content|action|data-[^=]+)="(\/[^"]+)"/g, (_, p1, p2) => `${p1}="${baseUrl}${new URL(p2, originalUrl).href}"`)
-      .replace(/"(?!(javascript:))([^"]*)"/g, (match) => match.replace(/(^|[^:])\/\/(.*)/, `$1${originalRequestUrl.protocol}$2`)); // 处理开头的链接，排除 JavaScript 链接
+      // 保持javascript:链接原样
+      .replace(/"(javascript:[^"<>]*)"/g, (match) => match)
+      // 替换绝对链接 (http 开头的链接)
+      .replace(/[(](https?:\/\/[^"<>]*?[^"<>]*)[)]/g, (_, p1) => `(${baseUrl}${p1})`)
+      .replace(/"(https?:\/\/[^"<>]*?[^"<>]*)"/g, (_, p1) => `"${baseUrl}${p1}"`)
+      // 替换双斜杠开头的协议相对路径
+      .replace(/"(\/\/[^"<>]+)"/g, (_, p1) => `"${baseUrl}${originalRequestUrl.protocol}${p1}"`)
+      // 替换以 / 开头的相对路径
+      .replace(/"(\/[^"<>]+)"/g, (_, p1) => `"${baseUrl}${new URL(p1, originalUrl).href}"`);
 
     responseBody = replaceAttributes(responseBody);
 
@@ -48,5 +52,5 @@ async function handleRequest(request) {
     });
   }
 
-  return originalResponse; // 返回原始响应
+  return originalResponse;
 }
