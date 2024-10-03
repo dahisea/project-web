@@ -33,6 +33,7 @@ async function handleRequest(request) {
     let responseBody = await originalResponse.text();
 
     const replaceAttributes = (html) => html
+      .replace(/[(](https?:\/\/[^"]*?[^"]*)[)]/g, (_, p1) => `(${baseUrl}${p1})`)
       .replace(/"(https?:\/\/[^"]*?[^"]*)"/g, (_, p1) => `"${baseUrl}${p1}"`)
       .replace(/(src|href|content|action|data-[^=]+)="(\/\/[^"]+)"/g, (_, p1, p2) => `${p1}="${originalRequestUrl.protocol}${p2}"`)
       .replace(/(src|href|content|action|data-[^=]+)="(\/[^"]+)"/g, (_, p1, p2) => `${p1}="${baseUrl}${new URL(p2, originalUrl).href}"`)
